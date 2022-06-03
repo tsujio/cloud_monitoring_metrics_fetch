@@ -21,14 +21,54 @@ type KeyValue struct {
 	Value string `json:"value"`
 }
 
+type Range struct {
+	Min float64 `json:"min"`
+	Max float64 `json:"max"`
+}
+
+type LinearBuckets struct {
+	NumFiniteBuckets int32   `json:"num_finite_buckets"`
+	Width            float64 `json:"width"`
+	Offset           float64 `json:"offset"`
+}
+
+type ExponentialBuckets struct {
+	NumFiniteBuckets int32   `json:"num_finite_buckets"`
+	GrowthFactor     float64 `json:"growth_factor"`
+	Scale            float64 `json:"scale"`
+}
+
+type ExplicitBuckets struct {
+	Bounds []float64 `json:"bounds"`
+}
+
+type OptionsUnion struct {
+	LinearBuckets      *LinearBuckets      `json:"linear_buckets"`
+	ExponentialBuckets *ExponentialBuckets `json:"exponential_buckets"`
+	ExplicitBuckets    *ExplicitBuckets    `json:"explicit_buckets"`
+}
+
+type BucketOptions struct {
+	Options *OptionsUnion `json:"options"`
+}
+
+type DistributionValue struct {
+	Count                 int64          `json:"count"`
+	Mean                  float64        `json:"mean"`
+	SumOfSquaredDeviation float64        `json:"sum_of_squared_deviation"`
+	Range                 *Range         `json:"range"`
+	BucketOptions         *BucketOptions `json:"bucket_options"`
+	BucketCounts          []int64        `json:"bucket_counts"`
+}
+
 type Point struct {
-	Timestamp         time.Time                  `json:"timestamp"`
-	Labels            []KeyValue                 `json:"labels"`
-	BoolValue         *bool                      `json:"bool_value"`
-	Int64Value        *int64                     `json:"int64_value"`
-	DoubleValue       *float64                   `json:"double_value"`
-	StringValue       *string                    `json:"string_value"`
-	DistributionValue *distribution.Distribution `json:"distribution_value"`
+	Timestamp         time.Time          `json:"timestamp"`
+	Labels            []KeyValue         `json:"labels"`
+	BoolValue         *bool              `json:"bool_value"`
+	Int64Value        *int64             `json:"int64_value"`
+	DoubleValue       *float64           `json:"double_value"`
+	StringValue       *string            `json:"string_value"`
+	DistributionValue *DistributionValue `json:"distribution_value"`
 }
 
 func convertKeyValuePairs(labels map[string]string, _type string) []KeyValue {
@@ -87,24 +127,55 @@ func readAndPrintTimeSeriesFields(
 				Timestamp: p.GetInterval().StartTime.AsTime(),
 				Labels:    labels,
 			}
-			switch t := p.GetValue().GetValue().(type) {
+			switch v := p.GetValue().GetValue().(type) {
 			case *monitoringpb.TypedValue_BoolValue:
-				v := p.GetValue().GetBoolValue()
-				point.BoolValue = &v
+				point.BoolValue = &v.BoolValue
 			case *monitoringpb.TypedValue_Int64Value:
-				v := p.GetValue().GetInt64Value()
-				point.Int64Value = &v
+				point.Int64Value = &v.Int64Value
 			case *monitoringpb.TypedValue_DoubleValue:
-				v := p.GetValue().GetDoubleValue()
-				point.DoubleValue = &v
+				point.DoubleValue = &v.DoubleValue
 			case *monitoringpb.TypedValue_StringValue:
-				v := p.GetValue().GetStringValue()
-				point.StringValue = &v
+				point.StringValue = &v.StringValue
 			case *monitoringpb.TypedValue_DistributionValue:
-				v := p.GetValue().GetDistributionValue()
-				point.DistributionValue = v
+				dv := v.DistributionValue
+				point.DistributionValue = &DistributionValue{
+					Count:                 dv.GetCount(),
+					Mean:                  dv.GetMean(),
+					SumOfSquaredDeviation: dv.GetSumOfSquaredDeviation(),
+				}
+				if r := dv.GetRange(); r != nil {
+					point.DistributionValue.Range = &Range{
+						Min: r.GetMin(),
+						Max: r.GetMax(),
+					}
+				}
+				if bo := dv.GetBucketOptions(); bo != nil {
+					var ou OptionsUnion
+					switch o := bo.GetOptions().(type) {
+					case *distribution.Distribution_BucketOptions_LinearBuckets:
+						ou.LinearBuckets = &LinearBuckets{
+							NumFiniteBuckets: o.LinearBuckets.GetNumFiniteBuckets(),
+							Width:            o.LinearBuckets.GetWidth(),
+							Offset:           o.LinearBuckets.GetOffset(),
+						}
+					case *distribution.Distribution_BucketOptions_ExponentialBuckets:
+						ou.ExponentialBuckets = &ExponentialBuckets{
+							NumFiniteBuckets: o.ExponentialBuckets.GetNumFiniteBuckets(),
+							GrowthFactor:     o.ExponentialBuckets.GetGrowthFactor(),
+							Scale:            o.ExponentialBuckets.GetScale(),
+						}
+					case *distribution.Distribution_BucketOptions_ExplicitBuckets:
+						ou.ExplicitBuckets = &ExplicitBuckets{
+							Bounds: o.ExplicitBuckets.GetBounds(),
+						}
+					}
+					point.DistributionValue.BucketOptions = &BucketOptions{
+						Options: &ou,
+					}
+				}
+				point.DistributionValue.BucketCounts = v.DistributionValue.GetBucketCounts()
 			default:
-				return fmt.Errorf("Not supported metric type: %s", t)
+				return fmt.Errorf("Not supported metric type: %s", v)
 			}
 			points = append(points, point)
 		}

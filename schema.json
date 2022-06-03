@@ -51,7 +51,7 @@
         "type": "FLOAT"
       },
       {
-        "name": "SumOfSquaredDeviation",
+        "name": "sum_of_squared_deviation",
         "type": "FLOAT"
       },
       {
@@ -73,11 +73,11 @@
         "type": "RECORD",
         "fields": [
           {
-            "name": "Options",
+            "name": "options",
             "type": "RECORD",
             "fields": [
               {
-                "name": "LinearBuckets",
+                "name": "linear_buckets",
                 "type": "RECORD",
                 "fields": [
                   {
@@ -95,7 +95,7 @@
                 ]
               },
               {
-                "name": "ExponentialBuckets",
+                "name": "exponential_buckets",
                 "type": "RECORD",
                 "fields": [
                   {
@@ -113,7 +113,7 @@
                 ]
               },
               {
-                "name": "ExplicitBuckets",
+                "name": "explicit_buckets",
                 "type": "RECORD",
                 "fields": [
                   {
