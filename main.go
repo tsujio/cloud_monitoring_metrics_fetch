@@ -11,6 +11,7 @@ import (
 	monitoring "cloud.google.com/go/monitoring/apiv3"
 	"github.com/golang/protobuf/ptypes/timestamp"
 	"google.golang.org/api/iterator"
+	"google.golang.org/genproto/googleapis/api/distribution"
 	monitoringpb "google.golang.org/genproto/googleapis/monitoring/v3"
 )
 
@@ -20,13 +21,14 @@ type KeyValue struct {
 	Value string `json:"value"`
 }
 
-type Number interface {
-}
-
 type Point struct {
-	Timestamp time.Time  `json:"timestamp"`
-	Labels    []KeyValue `json:"labels"`
-	Value     Number     `json:"value"`
+	Timestamp         time.Time                  `json:"timestamp"`
+	Labels            []KeyValue                 `json:"labels"`
+	BoolValue         *bool                      `json:"bool_value"`
+	Int64Value        *int64                     `json:"int64_value"`
+	DoubleValue       *float64                   `json:"double_value"`
+	StringValue       *string                    `json:"string_value"`
+	DistributionValue *distribution.Distribution `json:"distribution_value"`
 }
 
 func convertKeyValuePairs(labels map[string]string, _type string) []KeyValue {
@@ -81,17 +83,30 @@ func readAndPrintTimeSeriesFields(
 
 		points := make([]Point, 0)
 		for _, p := range resp.GetPoints() {
-			var val Number
+			point := Point{
+				Timestamp: p.GetInterval().StartTime.AsTime(),
+				Labels:    labels,
+			}
 			switch t := p.GetValue().GetValue().(type) {
+			case *monitoringpb.TypedValue_BoolValue:
+				v := p.GetValue().GetBoolValue()
+				point.BoolValue = &v
 			case *monitoringpb.TypedValue_Int64Value:
-				val = p.GetValue().GetInt64Value()
+				v := p.GetValue().GetInt64Value()
+				point.Int64Value = &v
 			case *monitoringpb.TypedValue_DoubleValue:
-				val = p.GetValue().GetDoubleValue()
+				v := p.GetValue().GetDoubleValue()
+				point.DoubleValue = &v
+			case *monitoringpb.TypedValue_StringValue:
+				v := p.GetValue().GetStringValue()
+				point.StringValue = &v
+			case *monitoringpb.TypedValue_DistributionValue:
+				v := p.GetValue().GetDistributionValue()
+				point.DistributionValue = v
 			default:
 				return fmt.Errorf("Not supported metric type: %s", t)
 			}
-			timestamp := p.GetInterval().StartTime.AsTime()
-			points = append(points, Point{Timestamp: timestamp, Labels: labels, Value: val})
+			points = append(points, point)
 		}
 
 		outputJson, err := json.Marshal(&points)

@@ -23,7 +23,115 @@
     ]
   },
   {
-    "name": "value",
+    "name": "bool_value",
+    "type": "BOOLEAN"
+  },
+  {
+    "name": "int64_value",
+    "type": "INTEGER"
+  },
+  {
+    "name": "double_value",
     "type": "FLOAT"
+  },
+  {
+    "name": "string_value",
+    "type": "STRING"
+  },
+  {
+    "name": "distribution_value",
+    "type": "RECORD",
+    "fields": [
+      {
+        "name": "count",
+        "type": "INTEGER"
+      },
+      {
+        "name": "mean",
+        "type": "FLOAT"
+      },
+      {
+        "name": "SumOfSquaredDeviation",
+        "type": "FLOAT"
+      },
+      {
+        "name": "range",
+        "type": "RECORD",
+        "fields": [
+          {
+            "name": "min",
+            "type": "FLOAT"
+          },
+          {
+            "name": "max",
+            "type": "FLOAT"
+          }
+        ]
+      },
+      {
+        "name": "bucket_options",
+        "type": "RECORD",
+        "fields": [
+          {
+            "name": "Options",
+            "type": "RECORD",
+            "fields": [
+              {
+                "name": "LinearBuckets",
+                "type": "RECORD",
+                "fields": [
+                  {
+                    "name": "num_finite_buckets",
+                    "type": "INTEGER"
+                  },
+                  {
+                    "name": "width",
+                    "type": "FLOAT"
+                  },
+                  {
+                    "name": "offset",
+                    "type": "FLOAT"
+                  }
+                ]
+              },
+              {
+                "name": "ExponentialBuckets",
+                "type": "RECORD",
+                "fields": [
+                  {
+                    "name": "num_finite_buckets",
+                    "type": "INTEGER"
+                  },
+                  {
+                    "name": "growth_factor",
+                    "type": "FLOAT"
+                  },
+                  {
+                    "name": "scale",
+                    "type": "FLOAT"
+                  }
+                ]
+              },
+              {
+                "name": "ExplicitBuckets",
+                "type": "RECORD",
+                "fields": [
+                  {
+                    "name": "bounds",
+                    "type": "FLOAT",
+                    "mode": "REPEATED"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "name": "bucket_counts",
+        "type": "INTEGER",
+        "mode": "REPEATED"
+      }
+    ]
   }
 ]
